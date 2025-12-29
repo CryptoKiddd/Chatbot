@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuid } from 'uuid';
 import { generateAIReplyAndSaveLead } from '@/lib/openai';
 import { SessionModel } from '@/lib/models';
 import { Session } from '@/lib/types';
@@ -7,7 +6,8 @@ import { Session } from '@/lib/types';
 export async function POST(req: NextRequest) {
   const { message, sessionId } = await req.json();
 
-  const id = sessionId || uuid();
+
+  const id = sessionId || crypto.randomUUID();
 
   // 🔹 Load or create session
   let session: Session | null = await SessionModel.findById(id);
