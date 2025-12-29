@@ -1,9 +1,12 @@
 import OpenAI from 'openai';
-import { Message, UserPreferences, Apartment, Lead } from './types';
-import { getDatabase } from './mongodb';
+import { Message, UserPreferences, Lead } from './types';
 import { ApartmentModel, LeadModel } from './models';
-
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+import { ChatCompletionMessageParam } from 'openai/resources';
+const isEmpty = (obj:Object) =>
+  obj && Object.keys(obj).length === 0;
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!
+});
 
 const SYSTEM_PROMPT = `
 You are a professional real estate sales assistant for Company Shindi.
@@ -11,133 +14,79 @@ You are a professional real estate sales assistant for Company Shindi.
 ========================
 CRITICAL BEHAVIOR RULES
 ========================
-- NEVER describe future actions (❌ "I will search", ❌ "I am preparing", ❌ "Once I find").
+- Introduce yourself and available projects.
+-Continue the dialogue in the users language
+- NEVER describe future actions.
+- ALWAYS ask for budget (maxBudget OR monthlyPayment AND downPayment) BEFORE making suggestions.
+- ALWAYS ask for location to narrow suggestions.
+- NEVER mention apartments, sizes, or prices that are not explicitly present in DATABASE.
+
 - NEVER delay suggestions if apartments are available.
-- If apartments match current preferences, SUGGEST THEM IMMEDIATELY.
--If can't suggest anything based on USERS PREFERECECES, DO NOT INVENT ANY APARTMENT, just tell them that we don't have anything avaliable with their preferences
-- Always act in the present: suggest, ask, explain — not plan.
+- NEVER invent apartments.
+- Words like "approximately", "around", "daaxloebit" MUST be treated as a flexible range, not exact values.
+- NEVER say that no apartments exist if apartments are present in the database but do not match strict filters.
+- If no exact match is found, explain WHICH criterion caused the mismatch.
 
-
-========================
-STRICT CONVERSATION FLOW
-========================
-You MUST follow this flow exactly:
-STEP 0 -Introduce the company Shindi and ask for preffered language to conitnue conversation
-
-STEP 1 — LOCATION
-- Ask for the desired city or area.
-- Once location is known, IMMEDIATELY inform the user what projects exist there (from DATABASE).
-
-STEP 2 — CONSTRUCTION STATUS
-- Ask what type they are looking for:
-  - under construction
-  - newly finished
-  - fully finished
-(Use constructionStatus array ONLY)
-
-STEP 3 — PAYMENT QUESTIONS (ONLY IF UNDER CONSTRUCTION)
-- Ask:
-  - downPayment
-  - monthlyPayment
-- Do NOT ask about total budget unless user mentions it.
-
-STEP 4 — IMMEDIATE SUGGESTIONS
-- As soon as enough data exists, suggest matching apartments FROM DATABASE.
-- NEVER say you are searching — just present results.
-
-STEP 5 — PERSONALIZATION
-- Ask if the user wants more personalized options.
-- If YES → ask ONE question at a time:
-  - minSize / maxSize
-  - floor (minFloor / maxFloor)
-  - viewType
-  - requiresBalcony
-  - rooms
-
-STEP 6 — NO MORE QUESTIONS PATH
-- If user says NO to further personalization:
-  - Ask if they want the sales team to contact them for better offers.
-
-STEP 7 — LEAD CREATION
-- ONLY if the user agrees:
-  - Ask for name and phone
-  - Email is optional
-- Generate lead ONLY after explicit interest.
+- If the user shows interest in suggested apartments, politely ask for their name and phone number.
+  Explain that a sales assistant may offer better prices or availability.
 
 ========================
-CRITICAL DATA CONTRACT
+STRICT DATA RULES
 ========================
-You MUST strictly follow the UserPreferences schema.
-Field names MUST match EXACTLY.
+- You may ONLY use apartments listed in DATABASE.
+- You may NOT invent names, prices, sizes, or projects.
+- NEVER guess or assume user preferences.
+- ONLY extract preferences explicitly stated by the user.
 
-UserPreferences schema (STRICT):
-{
-  _id?: ObjectId,
-  name?: string,
-  phone?: string,
-  email?: string,
-  language?: string,
-  location?: string,
-  maxBudget?: number,
-  monthlyPayment?: number,
-  downPayment?: number,
-  minSize?: number,
-  maxSize?: number,
-  rooms?: number,
-  viewType?: string,
-  requiresBalcony?: boolean,
-  budgetMax?: number,
-  minFloor?: number,
-  maxFloor?: number,
-  constructionStatus?: string[]
-}
+========================
+USER PREFERENCES SCHEMA (STRICT)
+========================
+You MUST output user preferences using ONLY the following keys.
+DO NOT add, rename, or infer any other fields.
+
+Allowed keys:
+- name
+- phone
+- language
+- location
+- maxBudget
+- monthlyPayment
+- downPayment
+- minSize
+- maxSize
+- rooms
+- viewType
+- requiresBalcony
+- budgetMax
+- minFloor
+- maxFloor
+- constructionStatus
 
 Rules:
-- Use ONLY these keys.
-- Omit unknown fields.
-- Numbers must be numbers.
--Prices are in Dollars
-- Booleans must be true/false.
-- constructionStatus MUST be an array.
-
-========================
-SUGGESTION RULES
-========================
-- Only suggest apartments provided in DATABASE.
-- Never invent projects.
-- Present results clearly and confidently.
-- If no apartments match, say so briefly and ask ONE adjustment question.
+- Use ONLY keys from the list above.
+- Include ONLY keys that the user explicitly provided.
+- Do NOT include undefined, null, or empty values.
+- Output MUST be valid JSON.
 
 ========================
 OUTPUT FORMAT (MANDATORY)
 ========================
 At the END of EVERY assistant message:
 
-<preferences>{
-  ...UserPreferences
-}</preferences>
+<preferences>{ ...UserPreferences }</preferences>
 
-If ready to capture lead:
+If the user provides BOTH name AND phone, also output:
 <leadReady>true</leadReady>
 
-Rules:
-- Valid JSON only.
-- No explanations inside tags.
-- No empty or undefined fields.
+Examples:
+<preferences>{"location":"Batumi","maxBudget":85000}</preferences>
 
-========================
-TONE & STYLE
-========================
-- Confident, sales-oriented, human.
-- Sounds like an experienced real estate consultant.
-- Never sounds like a bot, planner, or system.
-- No internal reasoning or process explanation.
+<preferences>{"monthlyPayment":1200,"downPayment":5000}</preferences>
+
+If no preferences were provided:
+<preferences>{}</preferences>
+
 `;
-
-
-
-// Function to query apartments from MongoDB
-
 
 export async function generateAIReplyAndSaveLead({
   userMessage,
@@ -148,65 +97,75 @@ export async function generateAIReplyAndSaveLead({
   history: Message[];
   preferences: UserPreferences;
 }) {
-
-  // 1️⃣ Query apartments based on preferences
-  const apartments = await ApartmentModel.search(preferences);
-
- const apartmentText = apartments.length
-  ? '\n\nDATABASE:\n' + apartments
-      .map(
-        (a) =>
-          `${a.projectName} | ${a.city} ${a.neighborhood} | ${a.totalArea}m² | ${a.rooms} rooms | Floor: ${a.floor} | View: ${a.viewType} | Balcony: ${a.hasBalcony ? 'Yes' : 'No'}${a.hasBalcony && a.balconySize ? ` (${a.balconySize}m²)` : ''} | Price: $${a.totalPrice} | Min Down: $${a.minInitialInstallment} | Monthly: $${a.monthlyPayment} for ${a.installmentDuration} months | Status: ${a.availabilityStatus} | Construction: ${a.constructionStatus}${a.expectedCompletion ? ` | Completion: ${a.expectedCompletion}` : ''} | Developer: ${a.developerName}`
-      )
-      .join('\n')
-  : '';
+let apartments;
+  // 1️⃣ SOURCE OF TRUTH — DB QUERY
+ 
+    apartments = await ApartmentModel.findAll();
 
 
-  // 2️⃣ Flatten conversation for AI
-  const conversationText = [
-    `SYSTEM: ${SYSTEM_PROMPT}`,
-    ...history.map(m => `${m.role.toUpperCase()}: ${m.content}`),
-    `USER: ${userMessage}`,
-    apartmentText
-  ].join('\n\n');
+  const apartmentText = apartments.length
+    ? `DATABASE:\n` + apartments.map(a =>
+        `${a.projectName} | ${a.city} ${a.neighborhood} | ${a.totalArea}m² | Floor ${a.floor} | View ${a.viewType} | Balcony ${a.hasBalcony ? 'Yes' : 'No'} | Price $${a.totalPrice} | Construction ${a.constructionStatus}`
+      ).join('\n')
+    : `DATABASE:\nEMPTY`;
+const messages: ChatCompletionMessageParam[] = [
+  { role: "system", content: SYSTEM_PROMPT },
 
-  // 3️⃣ Call OpenAI
-  const res = await client.responses.create({
+  ...history.map((m): ChatCompletionMessageParam => {
+    if (m.role === "user" || m.role === "assistant") {
+      return { role: m.role, content: m.content };
+    }
+    // fallback safety
+    return { role: "user", content: m.content };
+  }),
+
+  { role: "user", content: userMessage },
+  { role: "system", content: apartmentText }
+];
+
+  // 3️⃣ CHAT COMPLETIONS (CORRECT API)
+  const res = await client.chat.completions.create({
     model: 'gpt-4.1',
-    input: conversationText,
-    max_output_tokens: 800
+    temperature: 0,
+    messages
   });
 
-  const text = res.output_text || '';
+  const text = res.choices[0]?.message?.content || '';
 
-  // 4️⃣ Extract preferences & lead readiness
+  // 4️⃣ EXTRACT PREFERENCES & LEAD FLAG (UNCHANGED)
   const prefMatch = text.match(/<preferences>([\s\S]*?)<\/preferences>/);
   const leadMatch = text.match(/<leadReady>([\s\S]*?)<\/leadReady>/);
 
-  let updatedPreferences = preferences;
+  let updatedPreferences: UserPreferences = preferences;
   let leadReady = false;
 
   if (prefMatch) {
     try {
-      updatedPreferences = { ...preferences, ...JSON.parse(prefMatch[1]) };
-    } catch {}
+      updatedPreferences = {
+        ...preferences,
+        ...JSON.parse(prefMatch[1])
+      };
+    } catch {
+      console.warn('Invalid preferences JSON');
+    }
   }
-  if (leadMatch) leadReady = leadMatch[1].trim().toLowerCase() === 'true';
 
-  // 5️⃣ Save lead if ready
-      console.log("laed not ready", updatedPreferences)
+  if (leadMatch) {
+    leadReady = leadMatch[1].trim().toLowerCase() === 'true';
+  }
 
+  // 5️⃣ SAVE LEAD (UNCHANGED LOGIC)
   let leadSaved = false;
+
   if (leadReady && updatedPreferences.name && updatedPreferences.phone) {
-    console.log("laed ready")
     const lead: Lead = {
       name: updatedPreferences.name,
       phone: updatedPreferences.phone,
-      email: updatedPreferences.email,
-      language: updatedPreferences.language || 'unknown',
+    
+      language: updatedPreferences.language || 'KA',
       preferences: updatedPreferences,
       suggestedApartments: apartments.map(a => a.projectName),
-      conversationSummary: text.slice(0, 500), // optional short summary
+      conversationSummary: text.slice(0, 500),
       chatHistory: [...history, { role: 'user', content: userMessage }],
       status: 'new'
     };
@@ -216,12 +175,15 @@ export async function generateAIReplyAndSaveLead({
     console.log(`✅ Lead saved: ${lead.name}, ${lead.phone}`);
   }
 
+  // 6️⃣ CLEAN USER RESPONSE
+  const cleanReply = text
+    .replace(/<preferences>[\s\S]*?<\/preferences>/, '')
+    .replace(/<leadReady>[\s\S]*?<\/leadReady>/, '')
+    .trim();
+
   return {
-    reply: text.replace(/<preferences>[\s\S]*?<\/preferences>/, '')
-               .replace(/<leadReady>[\s\S]*?<\/leadReady>/, '')
-               .trim(),
+    reply: cleanReply,
     preferences: updatedPreferences,
     leadSaved
   };
 }
-

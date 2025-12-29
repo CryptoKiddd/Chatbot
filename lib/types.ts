@@ -39,7 +39,7 @@ export interface UserPreferences {
       _id?: ObjectId;
       name?:string,
       phone?:string ,
-      email?:string
+ 
 
   language?: string;
   location?: string;

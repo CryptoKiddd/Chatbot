@@ -27,7 +27,7 @@ export default function ChatInterface() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            message: 'Hello',
+            message: 'გამარჯობა',
             sessionId: null 
           })
         });
@@ -157,7 +157,11 @@ export default function ChatInterface() {
             {msg.apartments && msg.apartments.length > 0 && (
               <div className="mt-3 space-y-2">
                 {msg.apartments.map((apt) => (
+                  <>
+                  
+                  <h1 className='w-10 text-2xl text-emerald-600'>ბარათი</h1>
                   <ApartmentCard key={apt._id?.toString()} apartment={apt} />
+                  </>
                 ))}
               </div>
             )}
