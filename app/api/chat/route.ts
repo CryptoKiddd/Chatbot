@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+    SessionModel.create(session)
   }
 
   // 🔹 Append user message
