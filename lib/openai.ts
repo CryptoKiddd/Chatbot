@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { Message, UserPreferences, Lead } from './types';
+import { Message, UserPreferences, Lead, LeadBase } from './types';
 import { ApartmentModel, LeadModel } from './models';
 import { ChatCompletionMessageParam } from 'openai/resources';
 const isEmpty = (obj:Object) =>
@@ -52,7 +52,7 @@ Allowed keys:
 - name
 - phone
 - language
-- location
+- city
 - maxBudget
 - monthlyPayment
 - downPayment
@@ -93,15 +93,27 @@ If no preferences were provided:
 `;
 function filterApartments(apartments: any[], prefs: UserPreferences) {
   return apartments.filter(a => {
-    if (prefs.location && a.city !== prefs.location) return false;
-    if (prefs.downPayment && a.minInitialInstallment < prefs.downPayment) return false;
-    if (prefs.maxBudget && a.totalPrice > prefs.maxBudget) return false;
-    if (prefs.minSize && a.totalArea < prefs.minSize) return false;
-    if (prefs.maxSize && a.totalArea > prefs.maxSize) return false;
-    if (prefs.rooms && a.rooms !== prefs.rooms) return false;
+    if (prefs.city && a.city !== prefs.city) return false;
+
+    if (prefs.downPayment && a.minInitialInstallment > prefs.downPayment)
+      return false;
+
+    if (prefs.maxBudget && a.totalPrice > prefs.maxBudget)
+      return false;
+
+    if (prefs.minSize && a.totalArea < prefs.minSize)
+      return false;
+
+    if (prefs.maxSize && a.totalArea > prefs.maxSize)
+      return false;
+
+    if (prefs.rooms && a.rooms !== prefs.rooms)
+      return false;
+
     return true;
   });
 }
+
 
 export async function generateAIReplyAndSaveLead({
   userMessage,
@@ -119,7 +131,6 @@ export async function generateAIReplyAndSaveLead({
   // 2️⃣ BACKEND FILTERING (SUGGESTIONS ONLY)
   const suggestedApartments =filterApartments(allApartments, preferences)
   console.log("Preferences", preferences)
-  console.log("suggested aparmtents", suggestedApartments)
 
   // 3️⃣ FORMAT FULL DATABASE (FOR REASONING ONLY)
   const fullDatabaseText = allApartments.length
@@ -131,7 +142,7 @@ export async function generateAIReplyAndSaveLead({
   // 4️⃣ FORMAT SUGGESTED APARTMENTS (ONLY THESE MAY BE RECOMMENDED)
   const suggestedText = suggestedApartments.length
     ? `SUGGESTED_APARTMENTS:\n` + suggestedApartments.map(a =>
-        `${a.projectName} | ${a.city} ${a.neighborhood} | ${a.totalArea}m² | Floor ${a.floor} | View ${a.viewType} | alcony ${a.balconySize ? a.balconySize : 'No'}} | Price $${a.totalPrice} | Construction ${a.constructionStatus}`
+        `${a.projectName} | ${a.city} ${a.neighborhood} | ${a.totalArea}m² | Floor ${a.floor} | View ${a.viewType} | Balcony ${a.balconySize ? a.balconySize : 'No'}} | Price $${a.totalPrice} | Construction ${a.constructionStatus}`
       ).join('\n')
     : `SUGGESTED_APARTMENTS:\nNONE`;
 
@@ -184,16 +195,14 @@ export async function generateAIReplyAndSaveLead({
   let leadSaved = false;
 
   if (leadReady && updatedPreferences.name && updatedPreferences.phone) {
-    const lead: Lead = {
+    const lead: LeadBase = {
       name: updatedPreferences.name,
       phone: updatedPreferences.phone,
       language: updatedPreferences.language || 'KA',
       preferences: updatedPreferences,
 
       // 🔒 ONLY SUGGESTED APARTMENTS
-      suggestedApartments: suggestedApartments.map(a => a.projectName),
-
-      conversationSummary: text.slice(0, 500),
+      suggestedApartments,
       chatHistory: [...history, { role: 'user', content: userMessage }],
       status: 'new'
     };
@@ -213,20 +222,6 @@ export async function generateAIReplyAndSaveLead({
     reply: cleanReply,
     preferences: updatedPreferences,
     leadSaved,
-
-    // 👇 FRONTEND RENDERS THIS
-    suggestedApartments: suggestedApartments.map(a => ({
-      id: a._id,
-      projectName: a.projectName,
-      city: a.city,
-      neighborhood: a.neighborhood,
-      price: a.totalPrice,
-      size: a.totalArea,
-      floor: a.floor,
-      view: a.viewType,
-      balcony: a.hasBalcony,
-      constructionStatus: a.constructionStatus
-    }))
   };
 }
 

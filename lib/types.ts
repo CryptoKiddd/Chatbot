@@ -57,19 +57,24 @@ export interface UserPreferences {
   constructionStatus?: string[];
 }
 
-export interface Lead {
-  _id?: ObjectId;
+
+export interface Lead extends LeadBase {
+  _id: ObjectId;
+}
+
+export interface LeadBase {
+
   name: string;
   phone: string;
   email?: string;
   language: string;
   timestamp?: Date;
   preferences: UserPreferences;
-  suggestedApartments: string[];
-  conversationSummary: string;
+  suggestedApartments: Apartment[];
+
   chatHistory: Message[];
 
-  status: 'new' | 'contacted' | 'qualified' | 'closed';
+  status: 'new' | 'contacted' | 'intereseted' | 'closed' 
 }
 
 export interface Message {
@@ -91,3 +96,9 @@ export interface Session {
   createdAt: Date;
   updatedAt: Date;
 }
+
+ export interface ChatMessage {
+  role: 'user' | 'assistant' | string;
+  content: string;
+}
+export type LeadStatus = 'new' | 'contacted' | 'intereseted' | 'closed';
