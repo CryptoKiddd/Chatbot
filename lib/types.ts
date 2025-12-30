@@ -42,7 +42,7 @@ export interface UserPreferences {
  
 
   language?: string;
-  location?: string;
+  city?: string;
   maxBudget?: number;
   monthlyPayment?: number;
   downPayment?: number;
