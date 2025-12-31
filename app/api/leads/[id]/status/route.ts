@@ -13,11 +13,11 @@ const ALLOWED_STATUSES: LeadStatus[] = [
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
-) :Promise<NextResponse<{ success?: boolean; status?: LeadStatus; error?: string }>>{
+  { params }: { params: Promise<{ id: string }> } 
+) {
   try {
-    const { id } =  params;
     const { status } = await req.json();
+    const { id } =  await params;
 
     // 🔒 Validate
     if (!ObjectId.isValid(id)) {
