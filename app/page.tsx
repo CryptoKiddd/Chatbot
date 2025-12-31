@@ -1,12 +1,12 @@
 import ChatInterface from '@/components/ChatInterface';
 import LeadsList from '@/components/LeadsList';
 import { getDatabase } from '@/lib/mongodb';
-import { Lead } from '@/lib/types';
+import { ILead } from '@/lib/types';
 
 
 export default async function Home() {
   const db = await getDatabase()
-  const leads: Lead[] = await db.collection<Lead>('leads').find().sort({ timestamp: -1 }).toArray();
+  const leads: ILead[] = await db.collection<ILead>('leads').find().sort({ timestamp: -1 }).toArray();
   console.log(leads)
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 w-4xl " >

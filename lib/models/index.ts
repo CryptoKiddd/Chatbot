@@ -1,6 +1,6 @@
 import { Collection, ObjectId } from 'mongodb';
 import { getDatabase } from '../mongodb';
-import { Apartment, Project, Lead, Session, UserPreferences } from '../types';
+import { Apartment, Project, ILead, Session, UserPreferences } from '../types';
 
 // Database Models with CRUD operations
 
@@ -180,41 +180,41 @@ export class LeadModel {
     return db.collection('leads');
   }
 
-  static async findById(id: string): Promise<Lead | null> {
+  static async findById(id: string): Promise<ILead | null> {
     const collection = await this.getCollection();
     const result = await collection.findOne({ _id: new ObjectId(id) });
-    return result as Lead | null;
+    return result as ILead | null;
   }
 
-  static async findAll(limit: number = 100): Promise<Lead[]> {
+  static async findAll(limit: number = 100): Promise<ILead[]> {
     const collection = await this.getCollection();
     const results = await collection
       .find({})
       .sort({ timestamp: -1 })
       .limit(limit)
       .toArray();
-    return results as Lead[];
+    return results as ILead[];
   }
 
-  static async findByStatus(status: 'new' | 'contacted' | 'qualified' | 'closed'): Promise<Lead[]> {
+  static async findByStatus(status: 'new' | 'contacted' | 'qualified' | 'closed'): Promise<ILead[]> {
     const collection = await this.getCollection();
     const results = await collection
       .find({ status })
       .sort({ timestamp: -1 })
       .toArray();
-    return results as Lead[];
+    return results as ILead[];
   }
 
-  static async findByPhone(phone: string): Promise<Lead[]> {
+  static async findByPhone(phone: string): Promise<ILead[]> {
     const collection = await this.getCollection();
     const results = await collection
       .find({ phone })
       .sort({ timestamp: -1 })
       .toArray();
-    return results as Lead[];
+    return results as ILead[];
   }
 
-  static async findRecent(days: number = 7): Promise<Lead[]> {
+  static async findRecent(days: number = 7): Promise<ILead[]> {
     const collection = await this.getCollection();
     const date = new Date();
     date.setDate(date.getDate() - days);
@@ -223,10 +223,10 @@ export class LeadModel {
       .find({ timestamp: { $gte: date } })
       .sort({ timestamp: -1 })
       .toArray();
-    return results as Lead[];
+    return results as ILead[];
   }
 
-  static async create(lead: Omit<Lead, '_id' | 'status' | 'timestamp'>): Promise<ObjectId> {
+  static async create(lead: Omit<ILead, '_id' | 'status' | 'timestamp'>): Promise<ObjectId> {
     const collection = await this.getCollection();
     const result = await collection.insertOne({
       ...lead,

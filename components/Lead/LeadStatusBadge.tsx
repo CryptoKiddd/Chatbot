@@ -38,7 +38,7 @@ export default function LeadStatusBadge({
 
     try {
       const res = await fetch(`/api/leads/${leadId}/status`, {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
