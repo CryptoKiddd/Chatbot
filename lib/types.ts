@@ -58,9 +58,6 @@ export interface UserPreferences {
 }
 
 
-export interface Lead extends LeadBase {
-  _id: ObjectId;
-}
 
 export interface LeadBase {
 
@@ -75,6 +72,9 @@ export interface LeadBase {
   chatHistory: Message[];
 
   status: 'new' | 'contacted' | 'intereseted' | 'closed' 
+}
+export interface ILead extends LeadBase {
+  _id: ObjectId;
 }
 
 export interface Message {

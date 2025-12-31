@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { Message, UserPreferences, Lead, LeadBase } from './types';
+import { Message, UserPreferences, LeadBase } from './types';
 import { ApartmentModel, LeadModel } from './models';
 import { ChatCompletionMessageParam } from 'openai/resources';
 const isEmpty = (obj:Object) =>
