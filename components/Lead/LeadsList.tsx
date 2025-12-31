@@ -1,5 +1,5 @@
 import { ILead } from "@/lib/types";
-import Lead from "./Lead/Lead";
+import Lead from "./Lead";
 
 type LeadStatus = 'new' | 'contacted' | 'intereseted' | 'closed';
 
