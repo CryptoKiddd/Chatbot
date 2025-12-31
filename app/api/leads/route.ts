@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LeadModel, SessionModel } from '@/lib/models';
-import { Lead, LeadBase } from '@/lib/types';
+import { LeadBase } from '@/lib/types';
 
 
 const PHONE_REGEX = /^\+?[0-9\s-]{8,15}$/;

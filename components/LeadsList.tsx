@@ -1,22 +1,57 @@
-// components/LeadsList.tsx
-import type { ILead } from '@/lib/types';
+import { ILead } from "@/lib/types";
+import Lead from "./Lead/Lead";
 
-import Lead from './Lead/Lead';
+type LeadStatus = 'new' | 'contacted' | 'intereseted' | 'closed';
 
-interface LeadsListProps {
-  leads: ILead[];
-}
+const STATUSES: { key: LeadStatus; title: string }[] = [
+  { key: 'new', title: 'New' },
+  { key: 'contacted', title: 'Contacted' },
+  { key: 'intereseted', title: 'Interested' },
+  { key: 'closed', title: 'Closed' }
+];
 
+export default function LeadsList({ leads }: { leads: ILead[] }) {
+  const grouped = STATUSES.reduce<Record<LeadStatus, ILead[]>>(
+    (acc, status) => {
+      acc[status.key] = [];
+      return acc;
+    },
+    {} as Record<LeadStatus, ILead[]>
+  );
 
+  leads.forEach(lead => {
+    grouped[lead.status]?.push(lead);
+  });
 
-export default function LeadsList({ leads }: LeadsListProps) {
   return (
-    <div className="p-4 space-y-4">
-      {leads.length === 0 && (
-        <div className="text-center text-gray-500">No leads found</div>
-      )}
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4">
+      {STATUSES.map(({ key, title }) => (
+        <div
+          key={key}
+          className="bg-gray-50 rounded-xl border border-gray-200 p-3 flex flex-col"
+        >
+          {/* Column header */}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-800">{title}</h2>
+            <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
+              {grouped[key].length}
+            </span>
+          </div>
 
-      {leads.length > 0 && leads.map((lead:ILead) => <Lead lead={lead} />)}
+          {/* Leads */}
+          <div className="space-y-3 overflow-y-auto">
+            {grouped[key].length === 0 && (
+              <div className="text-xs text-gray-400 text-center py-4">
+                No leads
+              </div>
+            )}
+
+            {grouped[key].map(lead => (
+              <Lead key={lead._id.toString()} lead={lead} />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
