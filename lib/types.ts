@@ -74,7 +74,7 @@ export interface LeadBase {
   status: 'new' | 'contacted' | 'intereseted' | 'closed' 
 }
 export interface ILead extends LeadBase {
-  _id: ObjectId;
+  _id: ObjectId | string;
 }
 
 export interface Message {
