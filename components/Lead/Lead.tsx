@@ -11,7 +11,7 @@ export default function Lead({lead}:{lead:ILead}) {
             key={lead._id?.toString()}
             className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 hover:shadow-md transition-shadow"
         >
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start px-4">
                 <div>
                     <h3 className="text-lg font-semibold text-gray-900">{lead.name}</h3>
                     <p className="text-gray-500 flex items-center space-x-2 mt-1">
@@ -36,7 +36,7 @@ export default function Lead({lead}:{lead:ILead}) {
             </div>
 
             {/* Suggested Apartments */}
-            {lead.suggestedApartments.length > 0 && <SuggestedApartmentsDisplay apartments={lead.suggestedApartments} />}
+            {/* {lead.suggestedApartments.length > 0 && <SuggestedApartmentsDisplay apartments={lead.suggestedApartments} />} */}
 
 
 
