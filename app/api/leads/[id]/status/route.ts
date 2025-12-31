@@ -16,7 +16,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } =  params;
     const { status } = await req.json();
 
     // 🔒 Validate
