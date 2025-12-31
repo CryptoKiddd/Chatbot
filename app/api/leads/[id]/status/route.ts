@@ -14,7 +14,7 @@ const ALLOWED_STATUSES: LeadStatus[] = [
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
-) {
+) :Promise<NextResponse<{ success?: boolean; status?: LeadStatus; error?: string }>>{
   try {
     const { id } =  params;
     const { status } = await req.json();
