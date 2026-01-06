@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateAIReplyAndSaveLead } from '@/lib/openai';
 import { SessionModel } from '@/lib/models';
 import { Session } from '@/lib/types';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(req: NextRequest) {
   const { message, sessionId } = await req.json();
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
 
   if (leadSaved) {
     session.leadCaptured = true;
+    revalidatePath("/")
   }
 
   session.updatedAt = new Date();

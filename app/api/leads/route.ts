@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+
+
 import { NextRequest, NextResponse } from 'next/server';
 import { LeadModel, SessionModel } from '@/lib/models';
 import { LeadBase } from '@/lib/types';

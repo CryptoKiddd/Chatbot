@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { LeadStatus } from '@/lib/types';
 import { ObjectId } from 'mongodb';
+import { useLeadsStore } from '@/store/leads/leadStore';
 
 const STATUS_STYLES: Record<LeadStatus, string> = {
   new: 'bg-blue-100 text-blue-800',
@@ -25,6 +26,7 @@ export default function LeadStatusBadge({
   leadId: string;
   initialStatus: LeadStatus;
 }) {
+  const updateLeadStatus = useLeadsStore(state=> state.updateLeadStatus)
   const [status, setStatus] = useState<LeadStatus>(initialStatus);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -33,7 +35,7 @@ export default function LeadStatusBadge({
     if (newStatus === status) return;
 
     setLoading(true);
-    setStatus(newStatus); // optimistic UI
+    setStatus(newStatus); 
     setOpen(false);
 
     try {
@@ -42,6 +44,9 @@ export default function LeadStatusBadge({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
+      if(res.ok){
+        updateLeadStatus(leadId, newStatus)
+      }
 
       if (!res.ok) throw new Error('Failed to update status');
     } catch (err) {

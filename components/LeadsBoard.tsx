@@ -7,17 +7,19 @@ import KanbanColumn from './Lead/KanbanColumn';
 import Lead from './Lead/Lead';
 import { ILead } from '@/lib/types';
 import { LEAD_STATUSES, LeadStatus } from '@/lib/leadStatus';
+import { useLeadsStore } from '@/store/leads/leadStore';
 
-export default function LeadsBoard({ leads }: { leads: ILead[] }) {
-  const [items, setItems] = useState<ILead[]>(leads);
+export default function LeadsBoard() {
   const [activeLead, setActiveLead] = useState<ILead | null>(null);
+  const zustandLeads = useLeadsStore(state=>state.leads)
+  const updateLeadStatus = useLeadsStore(state=>state.updateLeadStatus)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
   const onDragStart = (event: DragStartEvent) => {
-    const lead = items.find(l => l._id.toString() === event.active.id);
+    const lead = zustandLeads.find(l => l._id.toString() === event.active.id);
     if (lead) setActiveLead(lead);
   };
 
@@ -29,9 +31,7 @@ export default function LeadsBoard({ leads }: { leads: ILead[] }) {
     const leadId = active.id.toString();
     const newStatus = over.id as LeadStatus;
 
-    setItems(prev =>
-      prev.map(l => (l._id.toString() === leadId ? { ...l, status: newStatus } : l))
-    );
+    updateLeadStatus(leadId, newStatus);
 
     fetch(`/api/leads/${leadId}/status`, {
       method: 'POST',
@@ -53,7 +53,7 @@ export default function LeadsBoard({ leads }: { leads: ILead[] }) {
             key={key}
             status={key}
             title={title}
-            leads={items.filter(l => l.status === key)}
+            leads={zustandLeads.filter(l => l.status === key)}
           />
         ))}
       </div>

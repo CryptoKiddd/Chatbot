@@ -18,7 +18,7 @@ export default function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-xl border p-3 bg-gray-50 transition ${
+      className={`rounded-xl border-b-fuchsia-200 p-3 bg-gray-50 transition ${
         isOver ? 'ring-2 ring-blue-400 bg-blue-50' : ''
       }`}
     >
