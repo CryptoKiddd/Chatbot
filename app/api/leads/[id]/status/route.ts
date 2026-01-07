@@ -1,6 +1,9 @@
+
+export const dynamic = 'force-dynamic';
 import { LeadModel } from "@/lib/models";
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
+import { revalidatePath } from "next/cache";
 
 type LeadStatus = 'new' | 'contacted' | 'intereseted' | 'closed';
 
@@ -34,6 +37,7 @@ export async function POST(
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
+     revalidatePath('/')
     return NextResponse.json({ success: true, status });
   } catch (err) {
     console.error("Update lead status error:", err);
