@@ -18,14 +18,21 @@ export default function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-xl border-b-fuchsia-200 p-3 bg-gray-50 transition ${
-        isOver ? 'ring-2 ring-blue-400 bg-blue-50' : ''
-      }`}
+      className={`rounded-xl shadow-sm border-b-amber-300 p-3 bg-gray-50 transition ${isOver ? 'ring-2 ring-amber-300  bg-amber-500 ' : ''
+        }`}
     >
-      <div className="flex justify-between mb-3">
-        <h2 className="font-semibold">{title}</h2>
-        <span className="text-xs bg-gray-200 px-2 rounded-full">{leads.length}</span>
+      <div className=" flex items-center justify-center gap-2 w-full mb-3 px-4 py-2 bg-white/80 backdrop-blur rounded-lg border border-amber-200 shadow-sm
+">
+        <h2 className="font-semibold text-gray-800">
+          {title}
+        </h2>
+
+        <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2.5 py-0.5 rounded-full flex items-center justify-center
+  ">
+          {leads.length}
+        </span>
       </div>
+
 
       <div className="space-y-3">
         {leads.map(lead => (

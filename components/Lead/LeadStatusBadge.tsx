@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
+
+import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { LeadStatus } from '@/lib/types';
-import { ObjectId } from 'mongodb';
 import { useLeadsStore } from '@/store/leads/leadStore';
 
 const STATUS_STYLES: Record<LeadStatus, string> = {
@@ -15,8 +15,8 @@ const STATUS_STYLES: Record<LeadStatus, string> = {
 const STATUS_LABELS: Record<LeadStatus, string> = {
   new: 'New',
   contacted: 'Contacted',
-  intereseted: 'Intereseted',
-  closed: 'closed'
+  intereseted: 'Interested',
+  closed: 'Closed'
 };
 
 export default function LeadStatusBadge({
@@ -26,16 +26,39 @@ export default function LeadStatusBadge({
   leadId: string;
   initialStatus: LeadStatus;
 }) {
-  const updateLeadStatus = useLeadsStore(state=> state.updateLeadStatus)
+  const updateLeadStatus = useLeadsStore(state => state.updateLeadStatus);
+
   const [status, setStatus] = useState<LeadStatus>(initialStatus);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
 
   async function updateStatus(newStatus: LeadStatus) {
     if (newStatus === status) return;
 
     setLoading(true);
-    setStatus(newStatus); 
+    setStatus(newStatus);
     setOpen(false);
 
     try {
@@ -44,11 +67,10 @@ export default function LeadStatusBadge({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
-      if(res.ok){
-        updateLeadStatus(leadId, newStatus)
-      }
 
       if (!res.ok) throw new Error('Failed to update status');
+
+      updateLeadStatus(leadId, newStatus);
     } catch (err) {
       console.error(err);
       setStatus(initialStatus); // rollback
@@ -59,13 +81,17 @@ export default function LeadStatusBadge({
   }
 
   return (
-    <div className="relative inline-block">
+    <div ref={wrapperRef} className="relative inline-block">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => !loading && setOpen(prev => !prev)}
         disabled={loading}
-        className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium
+        className={`
+          flex items-center gap-1.5
+          px-3 py-1.5
+          rounded-full text-sm font-medium
           ${STATUS_STYLES[status]}
-          hover:opacity-80 transition
+          hover:shadow-sm
+          transition-all
         `}
       >
         {loading && <Loader2 size={14} className="animate-spin" />}
@@ -74,16 +100,36 @@ export default function LeadStatusBadge({
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 w-40 rounded-lg border bg-white shadow-md">
-          {Object.keys(STATUS_LABELS).map(s => (
-            <button
-              key={s}
-              onClick={() => updateStatus(s as LeadStatus)}
-              className="flex w-full px-3 py-2 text-sm hover:bg-gray-100 text-left"
-            >
-              {STATUS_LABELS[s as LeadStatus]}
-            </button>
-          ))}
+        <div
+          className="
+            absolute z-30 mt-2 w-44
+            rounded-xl
+            border border-gray-200
+            bg-white/90 backdrop-blur
+            shadow-lg
+            overflow-hidden
+          "
+        >
+          {Object.keys(STATUS_LABELS).map(key => {
+            const st = key as LeadStatus;
+            return (
+              <button
+                key={st}
+                onClick={() => updateStatus(st)}
+                className="
+                  flex w-full items-center gap-2
+                  px-4 py-2 text-sm text-left
+                  hover:bg-gray-100
+                  transition
+                "
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${STATUS_STYLES[st]}`}
+                />
+                {STATUS_LABELS[st]}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

@@ -131,7 +131,7 @@ export default function ChatInterface() {
         </div>
         <div>
           <div className="font-semibold text-gray-900 text-sm">
-            Real Estate Assistant
+            შინდისტანტი
           </div>
           <div className="flex items-center gap-1 text-xs text-gray-600">
             <Circle size={8} className="fill-green-500 text-green-500" />
