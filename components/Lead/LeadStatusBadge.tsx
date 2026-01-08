@@ -5,7 +5,7 @@ import { ChevronDown, Loader2 } from 'lucide-react';
 import { LeadStatus } from '@/lib/types';
 import { useLeadsStore } from '@/store/leads/leadStore';
 
-const STATUS_STYLES: Record<LeadStatus, string> = {
+  const STATUS_STYLES: Record<LeadStatus, string> = {
   new: 'bg-blue-100 text-blue-800',
   contacted: 'bg-yellow-100 text-yellow-800',
   intereseted: 'bg-green-100 text-green-800',
